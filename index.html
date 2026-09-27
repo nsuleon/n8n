@@ -1,405 +1,50 @@
-{
-  "name": "Market & Macro Dashboard",
-  "nodes": [
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes"
-            }
-          ]
-        }
-      },
-      "id": "d718004a-2d79-4d11-a9b2-2e37ccf2c77d",
-      "name": "Every 5 Minutes",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.4,
-      "position": [
-        0,
-        288
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const fx = [\n  { code: 'EURUSD', label: 'EUR / USD', from: 'EUR', to: 'USD' },\n  { code: 'GBPUSD', label: 'GBP / USD', from: 'GBP', to: 'USD' },\n  { code: 'USDCHF', label: 'USD / CHF', from: 'USD', to: 'CHF' },\n  { code: 'USDCNY', label: 'USD / CNY', from: 'USD', to: 'CNY' },\n  { code: 'USDJPY', label: 'USD / JPY', from: 'USD', to: 'JPY' },\n  { code: 'AUDUSD', label: 'AUD / USD', from: 'AUD', to: 'USD' },\n  { code: 'USDCAD', label: 'USD / CAD', from: 'USD', to: 'CAD' },\n  { code: 'NZDUSD', label: 'NZD / USD', from: 'NZD', to: 'USD' },\n  { code: 'USDSGD', label: 'USD / SGD', from: 'USD', to: 'SGD' },\n  { code: 'USDINR', label: 'USD / INR', from: 'USD', to: 'INR' },\n  { code: 'USDHKD', label: 'USD / HKD', from: 'USD', to: 'HKD' },\n  { code: 'USDMXN', label: 'USD / MXN', from: 'USD', to: 'MXN' },\n  { code: 'USDZAR', label: 'USD / ZAR', from: 'USD', to: 'ZAR' },\n];\nconst items = [];\nfor (const p of fx) {\n  const qs = { function: 'FX_DAILY', from_symbol: p.from, to_symbol: p.to, outputsize: 'compact' };\n  items.push({ json: { code: p.code, label: p.label, kind: 'fx_daily', qs } });\n}\nconst commodities = [\n  { code: 'WTI',    label: 'Crude Oil (WTI)', fn: 'WTI' },\n  { code: 'BRENT',  label: 'Oil (Brent)',     fn: 'BRENT' },\n  { code: 'NATGAS', label: 'Natural Gas',     fn: 'NATURAL_GAS' },\n  { code: 'COPPER', label: 'Copper',          fn: 'COPPER' },\n];\nfor (const c of commodities) {\n  const qs = { function: c.fn, interval: 'daily' };\n  items.push({ json: { code: c.code, label: c.label, kind: 'commodity', qs } });\n}\nconst spots = [\n  { code: 'XAUUSD', label: 'Gold (XAU / USD)',   from: 'XAU', to: 'USD' },\n  { code: 'XAGUSD', label: 'Silver (XAG / USD)', from: 'XAG', to: 'USD' },\n];\nfor (const s of spots) {\n  const qs = { function: 'CURRENCY_EXCHANGE_RATE', from_currency: s.from, to_currency: s.to };\n  items.push({ json: { code: s.code, label: s.label, kind: 'spot', qs } });\n}\nreturn items;"
-      },
-      "id": "7b5a1919-4916-4450-a084-1a28da860ed4",
-      "name": "Plan Market Requests",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        224,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "url": "https://www.alphavantage.co/query",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpTemplatedCustomAuth",
-        "sendQuery": true,
-        "specifyQuery": "json",
-        "jsonQuery": "={{ JSON.stringify($json.qs) }}",
-        "options": {
-          "batching": {
-            "batch": {
-              "batchSize": 1,
-              "batchInterval": 1500
-            }
-          },
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          },
-          "timeout": 20000
-        }
-      },
-      "id": "c191f495-e38b-40b1-8da5-387566e00ebe",
-      "name": "Fetch Market Data",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        448,
-        0
-      ],
-      "credentials": {
-        "httpTemplatedCustomAuth": {
-          "id": "2MsRP45iSpvH6VOb",
-          "name": "Alpha Vantage API Key (SK R)"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "numberInputs": 4
-      },
-      "id": "116e1163-a479-44e7-87f6-06457da44865",
-      "name": "Combine Sources",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        672,
-        256
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const BASE = 'https://api.stlouisfed.org/fred/series/observations';\nconst series = [\n  { id: 'FEDFUNDS', label: 'US Fed Funds Rate (%)', group: 'Major' },\n  { id: 'CPIAUCSL', label: 'US CPI (Index)', group: 'Major' },\n  { id: 'UNRATE',   label: 'US Unemployment Rate (%)', group: 'Major' },\n  { id: 'GDP',      label: 'US GDP (Bil $)', group: 'Major' },\n  { id: 'DGS10',    label: 'US 10Y Treasury Yield (%)', group: 'Major' },\n  { id: 'DGS2',     label: 'US 2Y Treasury Yield (%)', group: 'Minor' },\n  { id: 'T10Y2Y',   label: 'US 10Y-2Y Spread (%)', group: 'Minor' },\n  { id: 'PAYEMS',   label: 'US Nonfarm Payrolls (000s)', group: 'Major' },\n  { id: 'INDPRO',   label: 'US Industrial Production', group: 'Minor' },\n  { id: 'UMCSENT',  label: 'US Consumer Sentiment', group: 'Minor' },\n  { id: 'M2SL',     label: 'US M2 Money Supply', group: 'Minor' },\n  { id: 'DTWEXBGS', label: 'US Dollar Index (Broad)', group: 'Major' },\n];\nreturn series.map(s => ({ json: {\n  id: s.id, label: s.label, group: s.group,\n  qs: { series_id: s.id, file_type: 'json', sort_order: 'desc', limit: 2 }\n} }));"
-      },
-      "id": "6457fa68-60a5-49c0-89c5-a1ef97d1e05f",
-      "name": "Plan FRED Requests",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        224,
-        192
-      ]
-    },
-    {
-      "parameters": {
-        "url": "https://api.stlouisfed.org/fred/series/observations",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpTemplatedCustomAuth",
-        "sendQuery": true,
-        "specifyQuery": "json",
-        "jsonQuery": "={{ JSON.stringify($json.qs) }}",
-        "options": {
-          "batching": {
-            "batch": {
-              "batchSize": 1,
-              "batchInterval": 400
-            }
-          },
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          },
-          "timeout": 20000
-        }
-      },
-      "id": "c9f671d3-e755-43c8-9a1f-d81524ee2bc9",
-      "name": "Fetch FRED",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        448,
-        192
-      ],
-      "credentials": {
-        "httpTemplatedCustomAuth": {
-          "id": "JTVN9bWIImBCMliN",
-          "name": "FRED API Key (SK R)"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "url": "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          },
-          "timeout": 20000
-        }
-      },
-      "id": "f0990f0e-288e-438e-b634-9e16db3d3d1a",
-      "name": "Fetch ECB",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        448,
-        384
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "url": "https://api.worldbank.org/v2/country/WLD/indicator/FP.CPI.TOTL.ZG?format=json&per_page=5&mrv=3",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          },
-          "timeout": 20000
-        }
-      },
-      "id": "e88608b4-a548-4156-8d5f-e73611fddf8a",
-      "name": "Fetch World Bank",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        448,
-        576
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const Z97 = 2.17; // z for a 97% two-sided interval\nfunction num(v){ const n = parseFloat(v); return isFinite(n) ? n : null; }\nfunction sma(a,n){ if(a.length<n) return null; let s=0; for(let i=a.length-n;i<a.length;i++) s+=a[i]; return s/n; }\nfunction ema(a,n){ if(a.length<n) return null; const k=2/(n+1); let e=a[0]; for(let i=1;i<a.length;i++) e=a[i]*k+e*(1-k); return e; }\nfunction rsi(a,n){ if(a.length<n+1) return null; let g=0,l=0; for(let i=a.length-n;i<a.length;i++){ const d=a[i]-a[i-1]; if(d>=0) g+=d; else l-=d; } const ag=g/n, al=l/n; if(al===0) return 100; return 100-100/(1+ag/al); }\nfunction macd(a){ const e12=ema(a,12), e26=ema(a,26); if(e12==null||e26==null) return null; return e12-e26; }\nfunction stdev(a){ if(a.length<2) return 0; const m=a.reduce((x,y)=>x+y,0)/a.length; const v=a.reduce((x,y)=>x+(y-m)*(y-m),0)/(a.length-1); return Math.sqrt(v); }\nfunction fmt(v,d){ if(v===null||v===undefined||!isFinite(v)) return 'n/a'; return Number(v).toFixed(d===undefined?4:d); }\nfunction esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }\nfunction safeAll(name){ try { return $(name).all().map(i => i.json); } catch (e) { return []; } }\n\nconst marketRows = safeAll('Fetch Market Data');\nconst marketPlan = safeAll('Plan Market Requests');\nconst fredRows   = safeAll('Fetch FRED');\nconst fredPlan   = safeAll('Plan FRED Requests');\nconst ecbRows    = safeAll('Fetch ECB');\nconst wbRows     = safeAll('Fetch World Bank');\n\nconst instruments = [];\nfor (let i=0; i<marketPlan.length; i++){\n  const plan = marketPlan[i] || {};\n  const resp = marketRows[i] ? marketRows[i] : {};\n  const rec = { label: plan.label || plan.code || ('#'+i), kind: plan.kind, price:null, changePct:null,\n                sma20:null, sma50:null, rsi:null, macd:null, upper:null, lower:null, bias:'n/a', note:'' };\n  const limited = resp && (resp.Note || resp.Information || resp['Error Message']);\n  try {\n    let closes = [];\n    if (plan.kind === 'fx_daily'){\n      const ts = resp['Time Series FX (Daily)'];\n      if (ts){ const dates = Object.keys(ts).sort(); for (const d of dates){ const c = num(ts[d]['4. close']); if(c!=null) closes.push(c); } }\n    } else if (plan.kind === 'commodity'){\n      const data = resp.data;\n      if (Array.isArray(data)){ const asc = data.slice().reverse(); for (const row of asc){ const c = num(row.value); if(c!=null) closes.push(c); } }\n    } else if (plan.kind === 'spot'){\n      const q = resp['Realtime Currency Exchange Rate'];\n      if (q){ const c = num(q['5. Exchange Rate']); if(c!=null) closes.push(c); }\n    }\n    if (closes.length){\n      rec.price = closes[closes.length-1];\n      if (closes.length>=2){ const prev = closes[closes.length-2]; if(prev) rec.changePct = ((rec.price-prev)/prev)*100; }\n      rec.sma20 = sma(closes,20); rec.sma50 = sma(closes,50);\n      rec.rsi = rsi(closes,14); rec.macd = macd(closes);\n      if (closes.length>=5){ const rets=[]; for(let k=1;k<closes.length;k++){ if(closes[k-1]) rets.push((closes[k]-closes[k-1])/closes[k-1]); } const sd=stdev(rets); const move=Z97*sd*rec.price; rec.upper=rec.price+move; rec.lower=rec.price-move; }\n      if (rec.sma20!=null && rec.sma50!=null && rec.rsi!=null){\n        if (rec.price>rec.sma20 && rec.sma20>rec.sma50 && rec.rsi<75) rec.bias='Bullish';\n        else if (rec.price<rec.sma20 && rec.sma20<rec.sma50 && rec.rsi>25) rec.bias='Bearish';\n        else rec.bias='Neutral';\n      } else if (rec.kind==='spot'){ rec.bias='Spot only'; }\n    }\n  } catch (e){ rec.note='parse error'; }\n  if (limited && rec.price===null){ rec.note='rate-limited / unavailable'; }\n  instruments.push(rec);\n}\n\nconst econ = [];\nfor (let i=0; i<fredPlan.length; i++){\n  const plan = fredPlan[i] || {};\n  const resp = fredRows[i] ? fredRows[i] : {};\n  let latest=null, date=null;\n  try { const obs = resp.observations; if (Array.isArray(obs) && obs.length){ latest = num(obs[0].value); date = obs[0].date; } } catch(e){}\n  econ.push({ label: plan.label || plan.id, group: plan.group || 'Minor', value: latest, date: date });\n}\n\nlet ecbRate=null, ecbDate=null;\ntry {\n  const r = ecbRows[0] || {};\n  const ds = r.dataSets && r.dataSets[0];\n  const obsDim = r.structure && r.structure.dimensions && r.structure.dimensions.observation && r.structure.dimensions.observation[0];\n  if (ds && ds.series){ const keys=Object.keys(ds.series); if(keys.length){ const obs=ds.series[keys[0]].observations; const ok=Object.keys(obs); if(ok.length){ ecbRate=num(obs[ok[ok.length-1]][0]); if(obsDim&&obsDim.values){ const iv=obsDim.values[ok[ok.length-1]]; if(iv) ecbDate=iv.id||iv.name; } } } }\n} catch(e){}\necon.push({ label: 'ECB Main Refinancing Rate (%)', group: 'Major', value: ecbRate, date: ecbDate });\n\nlet wbVal=null, wbDate=null;\ntry { const arr = wbRows[0]; const series = Array.isArray(arr) ? arr[1] : (arr && arr['1']); if (Array.isArray(series)){ for (const row of series){ if(row && row.value!=null){ wbVal=num(row.value); wbDate=row.date; break; } } } } catch(e){}\necon.push({ label: 'World Inflation, consumer prices (%)', group: 'Major', value: wbVal, date: wbDate });\n\nconst now = new Date().toISOString();\nconst NL = String.fromCharCode(10);\nconst L = [];\nfunction badge(bias){ const map={Bullish:'#16a34a',Bearish:'#dc2626',Neutral:'#64748b','Spot only':'#0ea5e9'}; const c=map[bias]||'#64748b'; return '<span style=\"background:'+c+';color:#fff;padding:2px 8px;border-radius:10px;font-size:12px\">'+esc(bias)+'</span>'; }\nL.push('<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">');\nL.push('<meta http-equiv=\"refresh\" content=\"300\">');\nL.push('<title>Market & Macro Dashboard</title>');\nL.push('<style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;background:#0f172a;color:#e2e8f0}header{padding:20px 24px;background:#111827;border-bottom:1px solid #1f2937}h1{margin:0;font-size:22px}h2{margin:24px 24px 8px;font-size:16px;color:#93c5fd}.meta{color:#94a3b8;font-size:13px;margin-top:4px}table{width:calc(100% - 48px);margin:0 24px 16px;border-collapse:collapse;background:#111827;border-radius:8px;overflow:hidden}th,td{padding:8px 10px;text-align:right;font-size:13px;border-bottom:1px solid #1f2937}th{background:#1e293b;color:#cbd5e1}td:first-child,th:first-child{text-align:left}.up{color:#22c55e}.down{color:#ef4444}.disc{margin:16px 24px 40px;padding:12px 16px;background:#1e293b;border-left:4px solid #f59e0b;border-radius:6px;font-size:12px;color:#cbd5e1}</style>');\nL.push('</head><body>');\nL.push('<header><h1>Market &amp; Macro Dashboard</h1><div class=\"meta\">Last updated: '+esc(now)+' &middot; Refreshes every 5 minutes &middot; Statistical bands at 97% confidence</div></header>');\nL.push('<h2>FX, Commodities &amp; Metals — Technical View</h2>');\nL.push('<table><thead><tr><th>Instrument</th><th>Price</th><th>Chg %</th><th>SMA20</th><th>SMA50</th><th>RSI14</th><th>MACD</th><th>97% Low</th><th>97% High</th><th>Bias</th></tr></thead><tbody>');\nfor (const r of instruments){\n  const chgCls = r.changePct==null?'':(r.changePct>=0?'up':'down');\n  const chg = r.changePct==null?'n/a':(r.changePct>=0?'+':'')+fmt(r.changePct,2)+'%';\n  const dec = (r.price!=null && r.price>=100)?2:4;\n  L.push('<tr><td>'+esc(r.label)+(r.note?' <span style=\"color:#f59e0b;font-size:11px\">('+esc(r.note)+')</span>':'')+'</td>'+\n    '<td>'+fmt(r.price,dec)+'</td>'+\n    '<td class=\"'+chgCls+'\">'+chg+'</td>'+\n    '<td>'+fmt(r.sma20,dec)+'</td>'+\n    '<td>'+fmt(r.sma50,dec)+'</td>'+\n    '<td>'+fmt(r.rsi,1)+'</td>'+\n    '<td>'+fmt(r.macd,4)+'</td>'+\n    '<td>'+fmt(r.lower,dec)+'</td>'+\n    '<td>'+fmt(r.upper,dec)+'</td>'+\n    '<td>'+badge(r.bias)+'</td></tr>');\n}\nL.push('</tbody></table>');\n\nconst major = econ.filter(e => e.group==='Major');\nconst minor = econ.filter(e => e.group!=='Major');\nfunction econTable(rows){ const t=['<table><thead><tr><th>Indicator</th><th>Latest</th><th>As of</th></tr></thead><tbody>']; for(const e of rows){ t.push('<tr><td>'+esc(e.label)+'</td><td>'+(e.value==null?'n/a':fmt(e.value,2))+'</td><td>'+esc(e.date||'n/a')+'</td></tr>'); } t.push('</tbody></table>'); return t.join(NL); }\nL.push('<h2>Economic Indicators — Major</h2>');\nL.push(econTable(major));\nL.push('<h2>Economic Indicators — Minor</h2>');\nL.push(econTable(minor));\nL.push('<div class=\"disc\"><strong>Important:</strong> The \"97% Low/High\" columns are a naive statistical range derived from recent volatility (z=2.17 around the last price). They are <em>not</em> a validated predictive forecast and carry no real 97% guarantee. The \"Bias\" column is a simple rule-based heuristic from moving averages and RSI. Nothing here is investment advice. Data sourced from Alpha Vantage, FRED, ECB and World Bank; some values may show n/a when a provider rate-limits or a series is unavailable.</div>');\nL.push('</body></html>');\n\nreturn [{ json: { html: L.join(NL), generatedAt: now, instruments: instruments.length, indicators: econ.length } }];"
-      },
-      "id": "3670ffce-953f-42e7-bd0c-d84f2baaad47",
-      "name": "Build Dashboard",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        896,
-        288
-      ]
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "file",
-        "operation": "edit",
-        "owner": {
-          "__rl": true,
-          "mode": "list",
-          "value": "nsuleon"
-        },
-        "repository": {
-          "__rl": true,
-          "mode": "list",
-          "value": "n8n",
-          "cachedResultName": "n8n",
-          "cachedResultUrl": "https://github.com/nsuleon/n8n"
-        },
-        "filePath": "index.html",
-        "fileContent": "={{ $json.html }}",
-        "commitMessage": "=Update dashboard {{ $now.toISO() }}"
-      },
-      "id": "4a15fc89-e876-4090-a171-a8904680bc28",
-      "name": "Commit Dashboard to GitHub",
-      "type": "n8n-nodes-base.github",
-      "typeVersion": 1.1,
-      "position": [
-        1120,
-        288
-      ],
-      "webhookId": "18a23ab7-1c9c-49ca-a373-e6f30bc737d1",
-      "credentials": {
-        "githubOAuth2Api": {
-          "id": "G8MoPntbzRzFB0Dl",
-          "name": "GitHub account"
-        }
-      }
-    }
-  ],
-  "pinData": {},
-  "connections": {
-    "Every 5 Minutes": {
-      "main": [
-        [
-          {
-            "node": "Plan Market Requests",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Plan FRED Requests",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Fetch ECB",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Fetch World Bank",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Plan Market Requests": {
-      "main": [
-        [
-          {
-            "node": "Fetch Market Data",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch Market Data": {
-      "main": [
-        [
-          {
-            "node": "Combine Sources",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Combine Sources": {
-      "main": [
-        [
-          {
-            "node": "Build Dashboard",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Plan FRED Requests": {
-      "main": [
-        [
-          {
-            "node": "Fetch FRED",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch FRED": {
-      "main": [
-        [
-          {
-            "node": "Combine Sources",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Fetch ECB": {
-      "main": [
-        [
-          {
-            "node": "Combine Sources",
-            "type": "main",
-            "index": 2
-          }
-        ]
-      ]
-    },
-    "Fetch World Bank": {
-      "main": [
-        [
-          {
-            "node": "Combine Sources",
-            "type": "main",
-            "index": 3
-          }
-        ]
-      ]
-    },
-    "Build Dashboard": {
-      "main": [
-        [
-          {
-            "node": "Commit Dashboard to GitHub",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate",
-    "timeSavedMode": "fixed",
-    "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": false
-  },
-  "versionId": "0d63ab06-cef3-4917-86b3-6f0f7ca61042",
-  "meta": {
-    "instanceId": "7ac43b649f27e1c9103c52a0fd2e9fd4ddbd4c660e74d36508e12e8fdd5d3a7b"
-  },
-  "nodeGroups": [
-    {
-      "id": "54ee1735-51a3-4087-8556-ab2b65a8e59a",
-      "name": "Fetch FX & commodities",
-      "nodeIds": [
-        "7b5a1919-4916-4450-a084-1a28da860ed4",
-        "c191f495-e38b-40b1-8da5-387566e00ebe"
-      ],
-      "description": "Pulls FX pairs, oil, metals from Alpha Vantage on each run, one throttled request per instrument"
-    },
-    {
-      "id": "319b66a3-117f-48d4-83f8-ac5091f72cef",
-      "name": "US economic data",
-      "nodeIds": [
-        "6457fa68-60a5-49c0-89c5-a1ef97d1e05f",
-        "c9f671d3-e755-43c8-9a1f-d81524ee2bc9"
-      ],
-      "description": "Fetches the latest FRED readings for major and minor US indicators like rates, CPI, jobs and yields"
-    },
-    {
-      "id": "6110e02d-3f45-4e6c-b97f-fc837c82fcde",
-      "name": "Publish dashboard",
-      "nodeIds": [
-        "116e1163-a479-44e7-87f6-06457da44865",
-        "3670ffce-953f-42e7-bd0c-d84f2baaad47",
-        "4a15fc89-e876-4090-a171-a8904680bc28"
-      ],
-      "description": "Combines all sources, computes indicators and 97% bands, then commits index.html to the GitHub Pages repo"
-    }
-  ],
-  "id": "4nbtVKN3waMvzFNy",
-  "tags": []
-}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="300">
+<title>Market & Macro Dashboard</title>
+<style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;background:#0f172a;color:#e2e8f0}header{padding:20px 24px;background:#111827;border-bottom:1px solid #1f2937}h1{margin:0;font-size:22px}h2{margin:24px 24px 8px;font-size:16px;color:#93c5fd}.meta{color:#94a3b8;font-size:13px;margin-top:4px}table{width:calc(100% - 48px);margin:0 24px 16px;border-collapse:collapse;background:#111827;border-radius:8px;overflow:hidden}th,td{padding:8px 10px;text-align:right;font-size:13px;border-bottom:1px solid #1f2937}th{background:#1e293b;color:#cbd5e1}td:first-child,th:first-child{text-align:left}.up{color:#22c55e}.down{color:#ef4444}.disc{margin:16px 24px 40px;padding:12px 16px;background:#1e293b;border-left:4px solid #f59e0b;border-radius:6px;font-size:12px;color:#cbd5e1}</style>
+</head><body>
+<header><h1>Market &amp; Macro Dashboard</h1><div class="meta">Last updated: 2026-09-27T18:41:03.504Z &middot; Refreshes every 5 minutes &middot; Statistical bands at 97% confidence</div></header>
+<h2>FX, Commodities &amp; Metals — Technical View</h2>
+<table><thead><tr><th>Instrument</th><th>Price</th><th>Chg %</th><th>SMA20</th><th>SMA50</th><th>RSI14</th><th>MACD</th><th>97% Low</th><th>97% High</th><th>Bias</th></tr></thead><tbody>
+<tr><td>EUR / USD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>GBP / USD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / CHF <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / CNY <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / JPY <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>AUD / USD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / CAD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>NZD / USD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / SGD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / INR <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / HKD <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / MXN <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>USD / ZAR <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>Crude Oil (WTI) <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>Oil (Brent) <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>Natural Gas <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>Copper <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>Gold (XAU / USD) <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+<tr><td>Silver (XAG / USD) <span style="color:#f59e0b;font-size:11px">(rate-limited / unavailable)</span></td><td>n/a</td><td class="">n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td><span style="background:#64748b;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px">n/a</span></td></tr>
+</tbody></table>
+<h2>Economic Indicators — Major</h2>
+<table><thead><tr><th>Indicator</th><th>Latest</th><th>As of</th></tr></thead><tbody>
+<tr><td>US Fed Funds Rate (%)</td><td>3.63</td><td>2026-08-01</td></tr>
+<tr><td>US CPI (Index)</td><td>334.13</td><td>2026-08-01</td></tr>
+<tr><td>US Unemployment Rate (%)</td><td>4.10</td><td>2026-08-01</td></tr>
+<tr><td>US GDP (Bil $)</td><td>32486.07</td><td>2026-04-01</td></tr>
+<tr><td>US 10Y Treasury Yield (%)</td><td>5.18</td><td>2026-09-24</td></tr>
+<tr><td>US Nonfarm Payrolls (000s)</td><td>159075.00</td><td>2026-08-01</td></tr>
+<tr><td>US Dollar Index (Broad)</td><td>119.51</td><td>2026-09-18</td></tr>
+<tr><td>ECB Main Refinancing Rate (%)</td><td>n/a</td><td>n/a</td></tr>
+<tr><td>World Inflation, consumer prices (%)</td><td>n/a</td><td>n/a</td></tr>
+</tbody></table>
+<h2>Economic Indicators — Minor</h2>
+<table><thead><tr><th>Indicator</th><th>Latest</th><th>As of</th></tr></thead><tbody>
+<tr><td>US 2Y Treasury Yield (%)</td><td>4.87</td><td>2026-09-24</td></tr>
+<tr><td>US 10Y-2Y Spread (%)</td><td>0.36</td><td>2026-09-25</td></tr>
+<tr><td>US Industrial Production</td><td>103.07</td><td>2026-08-01</td></tr>
+<tr><td>US Consumer Sentiment</td><td>51.70</td><td>2026-08-01</td></tr>
+<tr><td>US M2 Money Supply</td><td>23342.80</td><td>2026-08-01</td></tr>
+</tbody></table>
+<div class="disc"><strong>Important:</strong> The "97% Low/High" columns are a naive statistical range derived from recent volatility (z=2.17 around the last price). They are <em>not</em> a validated predictive forecast and carry no real 97% guarantee. The "Bias" column is a simple rule-based heuristic from moving averages and RSI. Nothing here is investment advice. Data sourced from Alpha Vantage, FRED, ECB and World Bank; some values may show n/a when a provider rate-limits or a series is unavailable.</div>
+</body></html>

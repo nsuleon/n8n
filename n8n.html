@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BD Multi-Recharge & Drive Offers Hub</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome & Lucide Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            gp: { primary: '#00A3E0', dark: '#0077A3', light: '#E6F6FC' },
+            robi: { primary: '#E20613', dark: '#AC020D', light: '#FCE8E9' },
+            bl: { primary: '#FF6600', dark: '#CC5200', light: '#FFF0E6' },
+            teletalk: { primary: '#2E7D32', dark: '#1B5E20', light: '#E8F5E9' },
+            skitto: { primary: '#6C5CE7', dark: '#4834D4', light: '#F0EEFF' },
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar for terminal & drawer */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.6);
+    }
+    .gradient-glow {
+      box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25);
+    }
+    .print-only {
+      display: none;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printable-receipt-modal, #printable-receipt-modal * {
+        visibility: visible;
+      }
+      #printable-receipt-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        color: black !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 antialiased selection:bg-blue-500 selection:text-white">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- HEADER & APP STATUS BAR -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        
+        <!-- Branding -->
+        <div class="flex items-center space-x-3">
+          <div class="h-11 w-11 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <i class="fa-solid fa-bolt text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                BD Multi-Recharge & Drive Hub
+              </h1>
+              <span class="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono font-medium">v2.4 Live</span>
+            </div>
+            <p class="text-xs text-slate-400">Integrated Flexiload, Internet & Drive Offers API Gateway</p>
+          </div>
+        </div>
+
+        <!-- System Controls & Balance Widget -->
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Balance Badge -->
+          <div class="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1.5 rounded-xl flex items-center gap-2.5 shadow-sm">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm">
+              ৳
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">API Balance</div>
+              <div class="text-sm font-bold text-emerald-400 font-mono" id="app-balance">BDT 5,420.00</div>
+            </div>
+            <button onclick="topUpSimulatedBalance()" title="Simulate Top-Up" class="ml-1 text-slate-400 hover:text-emerald-400 transition-colors">
+              <i class="fa-solid fa-circle-plus text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Server Status -->
+          <div class="bg-slate-800/90 border border-slate-700/80 px-3 py-1.5 rounded-xl flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span class="text-xs font-medium text-slate-300" id="server-status-text">Server Online</span>
+          </div>
+
+          <!-- Sandbox / Live Toggle -->
+          <div class="bg-slate-800/90 border border-slate-700/80 p-1 rounded-xl flex items-center">
+            <button id="mode-sandbox-btn" onclick="setApiMode('sandbox')" class="px-2.5 py-1 text-xs rounded-lg font-medium transition-all bg-blue-600 text-white shadow-sm">
+              Sandbox
+            </button>
+            <button id="mode-live-btn" onclick="setApiMode('live')" class="px-2.5 py-1 text-xs rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-all">
+              Live API
+            </button>
+          </div>
+
+          <!-- API Settings Button -->
+          <button onclick="toggleApiSettingsModal(true)" class="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-all" title="Developer API Gateway Settings">
+            <i class="fa-solid fa-code text-sm"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- TOP SECTION: OPERATORS & SMART RECHARGE FORM -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT: OPERATOR SELECTOR & RECHARGE FORM (5 cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <!-- OPERATOR SELECTION GRID -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-tower-cell text-blue-400"></i> Select Operator
+            </label>
+            <span class="text-[11px] text-slate-500" id="auto-detected-badge">Auto-detect ready</span>
+          </div>
+
+          <div class="grid grid-cols-5 gap-2" id="operator-grid">
+            <!-- GP -->
+            <button onclick="selectOperator('gp')" id="op-gp" class="operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 border-slate-800 bg-slate-800/40 hover:bg-slate-800 transition-all group">
+              <div class="w-9 h-9 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-black text-xs group-hover:scale-105 transition-transform">
+                GP
+              </div>
+              <span class="text-[11px] font-semibold mt-1.5 text-slate-300 group-hover:text-cyan-400">GP</span>
+              <span class="text-[9px] text-slate-500 font-mono">017,013</span>
+            </button>
+
+            <!-- ROBI -->
+            <button onclick="selectOperator('robi')" id="op-robi" class="operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 border-slate-800 bg-slate-800/40 hover:bg-slate-800 transition-all group">
+              <div class="w-9 h-9 rounded-full bg-red-500/10 text-red-500 border border-red-500/30 flex items-center justify-center font-black text-xs group-hover:scale-105 transition-transform">
+                RB
+              </div>
+              <span class="text-[11px] font-semibold mt-1.5 text-slate-300 group-hover:text-red-400">Robi</span>
+              <span class="text-[9px] text-slate-500 font-mono">018,016</span>
+            </button>
+
+            <!-- BANGLALINK -->
+            <button onclick="selectOperator('bl')" id="op-bl" class="operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 border-slate-800 bg-slate-800/40 hover:bg-slate-800 transition-all group">
+              <div class="w-9 h-9 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-xs group-hover:scale-105 transition-transform">
+                BL
+              </div>
+              <span class="text-[11px] font-semibold mt-1.5 text-slate-300 group-hover:text-orange-400">B-Link</span>
+              <span class="text-[9px] text-slate-500 font-mono">019,014</span>
+            </button>
+
+            <!-- TELETALK -->
+            <button onclick="selectOperator('teletalk')" id="op-teletalk" class="operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 border-slate-800 bg-slate-800/40 hover:bg-slate-800 transition-all group">
+              <div class="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-xs group-hover:scale-105 transition-transform">
+                TT
+              </div>
+              <span class="text-[11px] font-semibold mt-1.5 text-slate-300 group-hover:text-emerald-400">Teletalk</span>
+              <span class="text-[9px] text-slate-500 font-mono">015</span>
+            </button>
+
+            <!-- SKITTO / CIRCLE -->
+            <button onclick="selectOperator('skitto')" id="op-skitto" class="operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 border-slate-800 bg-slate-800/40 hover:bg-slate-800 transition-all group">
+              <div class="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-black text-xs group-hover:scale-105 transition-transform">
+                SK
+              </div>
+              <span class="text-[11px] font-semibold mt-1.5 text-slate-300 group-hover:text-indigo-400">Skitto</span>
+              <span class="text-[9px] text-slate-500 font-mono">Circle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- RECHARGE INPUT FORM -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <form id="recharge-form" onsubmit="handleRechargeSubmit(event)" class="space-y-4">
+            
+            <!-- Mobile Number Input with Prefix Recognition -->
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <label for="mobile-number" class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Mobile Number (BD)
+                </label>
+                <span id="number-valid-status" class="text-xs text-slate-500">0/11 Digits</span>
+              </div>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-mono text-sm">
+                  +88
+                </div>
+                <input 
+                  type="tel" 
+                  id="mobile-number" 
+                  maxlength="11" 
+                  placeholder="01712345678" 
+                  oninput="handleNumberInput(this.value)"
+                  class="w-full pl-14 pr-10 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-base tracking-widest focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  required
+                >
+                <div id="operator-badge-inline" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <i class="fa-solid fa-mobile-screen-button text-slate-600"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Connection Type Switch (Prepaid / Postpaid) -->
+            <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button 
+                type="button" 
+                id="type-prepaid" 
+                onclick="setConnectionType('1')" 
+                class="py-2 text-xs font-semibold rounded-lg transition-all bg-blue-600 text-white shadow-sm"
+              >
+                Prepaid
+              </button>
+              <button 
+                type="button" 
+                id="type-postpaid" 
+                onclick="setConnectionType('2')" 
+                class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all"
+              >
+                Postpaid
+              </button>
+            </div>
+
+            <!-- Amount Input & Quick Select Buttons -->
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <label for="amount-input" class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Amount (BDT ৳)
+                </label>
+                <span id="selected-offer-tag" class="text-[11px] text-emerald-400 font-medium hidden">Custom Flexiload</span>
+              </div>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 font-bold">৳</span>
+                <input 
+                  type="number" 
+                  id="amount-input" 
+                  min="10" 
+                  max="5000" 
+                  placeholder="100" 
+                  oninput="updateSelectedOfferText()"
+                  class="w-full pl-8 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-lg font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  required
+                >
+              </div>
+
+              <!-- Quick Amounts -->
+              <div class="grid grid-cols-5 gap-1.5 mt-2">
+                <button type="button" onclick="setQuickAmount(20)" class="py-1 px-2 text-xs bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 font-mono">৳20</button>
+                <button type="button" onclick="setQuickAmount(50)" class="py-1 px-2 text-xs bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 font-mono">৳50</button>
+                <button type="button" onclick="setQuickAmount(100)" class="py-1 px-2 text-xs bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 font-mono">৳100</button>
+                <button type="button" onclick="setQuickAmount(200)" class="py-1 px-2 text-xs bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 font-mono">৳200</button>
+                <button type="button" onclick="setQuickAmount(500)" class="py-1 px-2 text-xs bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-slate-300 font-mono">৳500</button>
+              </div>
+            </div>
+
+            <!-- Optional Offer Code / Note -->
+            <input type="hidden" id="selected-offer-code" value="FLEXI">
+
+            <!-- Submit Recharge Button -->
+            <button 
+              type="submit" 
+              id="submit-recharge-btn" 
+              class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center space-x-2"
+            >
+              <i class="fa-solid fa-paper-plane text-xs"></i>
+              <span>INSTANT RECHARGE NOW</span>
+            </button>
+
+          </form>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: OPERATOR OFFERS & DRIVE PACKAGES DRAWER (7 cols) -->
+      <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+        
+        <!-- Tab Header & Category Filter -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+              <span id="active-operator-title-badge" class="px-2 py-0.5 rounded text-xs bg-cyan-500/20 text-cyan-400 font-mono font-bold">GP</span>
+              <span>Internet & Drive Packs</span>
+            </h2>
+            <p class="text-xs text-slate-400">Click any pack to auto-populate into recharge request</p>
+          </div>
+
+          <!-- Category Selector -->
+          <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+            <button onclick="filterOffersCategory('all')" id="cat-all" class="cat-btn px-2.5 py-1 rounded-lg bg-blue-600 text-white">All</button>
+            <button onclick="filterOffersCategory('internet')" id="cat-internet" class="cat-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200">Internet</button>
+            <button onclick="filterOffersCategory('minute')" id="cat-minute" class="cat-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200">Minutes</button>
+            <button onclick="filterOffersCategory('combo')" id="cat-combo" class="cat-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200">Drive / Combo</button>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mt-3 relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+          <input 
+            type="text" 
+            id="offer-search-input" 
+            placeholder="Search offer (e.g. 25GB, 500 Mins, 30 Days)..." 
+            oninput="renderOffersList()"
+            class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+          >
+        </div>
+
+        <!-- OFFERS CARDS LIST -->
+        <div id="offers-container" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto max-h-[380px] pr-1">
+          <!-- Dynamic Content Rendered via JS -->
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- MIDDLE SECTION: LIVE API PAYLOAD INSPECTOR & TERMINAL -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LIVE JSON REQUEST PREVIEW (6 cols) -->
+      <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <span class="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
+            <h3 class="text-sm font-bold text-slate-200">Live API Request JSON Inspector</h3>
+          </div>
+          <button onclick="copyApiPayload()" class="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1">
+            <i class="fa-regular fa-copy"></i> Copy JSON
+          </button>
+        </div>
+        <p class="text-xs text-slate-400">Real-time HTTP payload generated for target gateway server:</p>
+        
+        <div class="relative bg-slate-950 rounded-xl p-3.5 border border-slate-800/80 font-mono text-xs overflow-x-auto">
+          <pre id="json-preview-code" class="text-emerald-400">{ /* Live request payload will render here */ }</pre>
+        </div>
+      </div>
+
+      <!-- SIMULATED TERMINAL LOGS (6 cols) -->
+      <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-terminal text-emerald-400 text-xs"></i>
+            <h3 class="text-sm font-bold text-slate-200">Gateway Console & Response Logs</h3>
+          </div>
+          <button onclick="clearConsoleLogs()" class="text-xs text-slate-400 hover:text-red-400 transition-colors">
+            Clear Logs
+          </button>
+        </div>
+
+        <div id="terminal-console" class="bg-slate-950 rounded-xl p-3.5 border border-slate-800/80 font-mono text-[11px] h-[160px] overflow-y-auto space-y-1.5 text-slate-300">
+          <div class="text-slate-500">[SYSTEM] API Gateway initialized in <span class="text-blue-400">Sandbox Mode</span>.</div>
+          <div class="text-slate-500">[SYSTEM] Ready to send transactions to GP, Robi, BL, Teletalk, and Skitto.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM SECTION: RECENT TRANSACTIONS TABLE -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-blue-400"></i>
+            <span>Recent Recharge Transactions</span>
+          </h3>
+          <p class="text-xs text-slate-400">Real-time status of executed phone recharges and drive offers</p>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="exportTransactionsCSV()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-file-csv text-emerald-400"></i>
+            <span>Export CSV</span>
+          </button>
+          <button onclick="clearTransactionHistory()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-red-400 text-xs font-semibold rounded-lg border border-slate-700 transition-all">
+            Clear History
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <th class="py-2.5 px-3">Trx ID</th>
+              <th class="py-2.5 px-3">Mobile No</th>
+              <th class="py-2.5 px-3">Operator</th>
+              <th class="py-2.5 px-3">Type</th>
+              <th class="py-2.5 px-3">Amount</th>
+              <th class="py-2.5 px-3">Offer Pack</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Time</th>
+              <th class="py-2.5 px-3 text-right">Receipt</th>
+            </tr>
+          </thead>
+          <tbody id="transaction-history-body" class="divide-y divide-slate-800/60 text-xs font-mono">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- DEVELOPER API SETTINGS MODAL -->
+  <div id="api-settings-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-gears text-blue-400"></i>
+          <span>Developer API Gateway Settings</span>
+        </h3>
+        <button onclick="toggleApiSettingsModal(false)" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">API Provider Type</label>
+          <select id="setting-provider-type" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200">
+            <option value="roni">Roni Telecom / Flexiload Gateway</option>
+            <option value="rsm">RSM Tech / Flexi Server</option>
+            <option value="irecharge">iRecharge BD API</option>
+            <option value="generic">Custom REST API Endpoint</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">API Endpoint Base URL</label>
+          <input type="text" id="setting-api-url" value="https://api.ronirecharge-server.com/v2/recharge" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">API Username</label>
+            <input type="text" id="setting-api-user" value="roni_merchant_88" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Secret API Key / Token</label>
+            <input type="password" id="setting-api-key" value="sec_key_9983478120391823" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Webhook Response URL (Optional)</label>
+          <input type="text" id="setting-webhook-url" value="https://your-domain.com/api/recharge/callback" class="w-full py-2 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 border-t border-slate-800 pt-4">
+        <button onclick="toggleApiSettingsModal(false)" class="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold rounded-xl">
+          Cancel
+        </button>
+        <button onclick="saveApiSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/30">
+          Save API Configuration
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIGITAL RECEIPT MODAL -->
+  <div id="receipt-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div id="printable-receipt-modal" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      
+      <div class="text-center space-y-1">
+        <div class="inline-flex h-12 w-12 rounded-full bg-emerald-500/10 text-emerald-400 items-center justify-center text-xl font-bold mb-1">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-100">Recharge Successful</h3>
+        <p class="text-xs text-slate-400">Official Payment & Transaction Receipt</p>
+      </div>
+
+      <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-2.5 font-mono text-xs text-slate-300">
+        <div class="flex justify-between border-b border-slate-800/80 pb-2">
+          <span class="text-slate-500">TRX Reference:</span>
+          <span id="rcpt-trx" class="font-bold text-blue-400">TRX-0000000</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Mobile Number:</span>
+          <span id="rcpt-number" class="font-bold text-white">01700000000</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Operator:</span>
+          <span id="rcpt-operator" class="font-bold text-slate-200">Grameenphone</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Account Type:</span>
+          <span id="rcpt-type" class="text-slate-200">Prepaid</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Package Offer:</span>
+          <span id="rcpt-offer" class="text-slate-200">Flexiload Custom</span>
+        </div>
+        <div class="flex justify-between border-t border-slate-800/80 pt-2 text-sm font-bold text-emerald-400">
+          <span>Amount Paid:</span>
+          <span id="rcpt-amount">BDT ৳100.00</span>
+        </div>
+        <div class="flex justify-between text-[10px] text-slate-500 pt-1">
+          <span>Timestamp:</span>
+          <span id="rcpt-time">2026-10-12 14:30</span>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-[11px] text-slate-500">
+        <span>Status: <strong class="text-emerald-400">200 SUCCESS</strong></span>
+        <span>Gateway: <span id="rcpt-gateway">Roni API</span></span>
+      </div>
+
+      <div class="flex space-x-2 pt-2">
+        <button onclick="window.print()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-print"></i> Print Receipt
+        </button>
+        <button onclick="closeReceiptModal()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/30">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Global Application State
+    const state = {
+      balance: 5420.00,
+      apiMode: 'sandbox', // 'sandbox' | 'live'
+      selectedOperator: 'gp', // 'gp', 'robi', 'bl', 'teletalk', 'skitto'
+      connectionType: '1', // '1' = Prepaid, '2' = Postpaid
+      selectedOfferCategory: 'all',
+      selectedOffer: null, // null means flexiload
+      apiSettings: {
+        provider: 'roni',
+        url: 'https://api.ronirecharge-server.com/v2/recharge',
+        user: 'roni_merchant_88',
+        key: 'sec_key_9983478120391823',
+        webhook: 'https://your-domain.com/api/recharge/callback'
+      },
+      transactions: [
+        {
+          id: 'TRX-9823411',
+          number: '01711223344',
+          operator: 'gp',
+          type: 'Prepaid',
+          amount: 299,
+          offer: '25 GB + 500 Mins (30 Days)',
+          status: 'SUCCESS',
+          time: '2026-10-12 14:20'
+        },
+        {
+          id: 'TRX-9823410',
+          number: '01899887766',
+          operator: 'robi',
+          type: 'Prepaid',
+          amount: 149,
+          offer: '10 GB (7 Days)',
+          status: 'SUCCESS',
+          time: '2026-10-12 13:45'
+        }
+      ]
+    };
+
+    // Operator Database Config
+    const operators = {
+      gp: {
+        name: 'Grameenphone',
+        code: 'GP',
+        apiCode: 'GP',
+        prefixes: ['017', '013'],
+        color: 'text-cyan-400',
+        bg: 'bg-cyan-500/10',
+        border: 'border-cyan-500'
+      },
+      robi: {
+        name: 'Robi',
+        code: 'Robi',
+        apiCode: 'RB',
+        prefixes: ['018', '016'],
+        color: 'text-red-400',
+        bg: 'bg-red-500/10',
+        border: 'border-red-500'
+      },
+      bl: {
+        name: 'Banglalink',
+        code: 'Banglalink',
+        apiCode: 'BL',
+        prefixes: ['019', '014'],
+        color: 'text-orange-400',
+        bg: 'bg-orange-500/10',
+        border: 'border-orange-500'
+      },
+      teletalk: {
+        name: 'Teletalk',
+        code: 'Teletalk',
+        apiCode: 'TT',
+        prefixes: ['015'],
+        color: 'text-emerald-400',
+        bg: 'bg-emerald-500/10',
+        border: 'border-emerald-500'
+      },
+      skitto: {
+        name: 'Skitto / Circle',
+        code: 'Skitto',
+        apiCode: 'SK',
+        prefixes: [], // skitto users usually select manually or via GP sub-brand
+        color: 'text-indigo-400',
+        bg: 'bg-indigo-500/10',
+        border: 'border-indigo-500'
+      }
+    };
+
+    // Internet, Minute & Drive Offers Database
+    const offersDatabase = {
+      gp: [
+        { id: 'gp-1', category: 'internet', title: '25 GB Internet', validity: '30 Days', price: 399, oldPrice: 499, code: 'GP-25GB-30D' },
+        { id: 'gp-2', category: 'combo', title: '40 GB + 800 Mins (Drive)', validity: '30 Days', price: 698, oldPrice: 899, code: 'GP-DRIVE-698' },
+        { id: 'gp-3', category: 'minute', title: '500 Mins Any Net', validity: '30 Days', price: 307, oldPrice: 350, code: 'GP-500M-30D' },
+        { id: 'gp-4', category: 'internet', title: '10 GB Regular Pack', validity: '7 Days', price: 148, oldPrice: 179, code: 'GP-10GB-7D' },
+        { id: 'gp-5', category: 'combo', title: '15 GB + 300 Mins Combo', validity: '15 Days', price: 349, oldPrice: 420, code: 'GP-15GB-300M' }
+      ],
+      robi: [
+        { id: 'rb-1', category: 'combo', title: '50 GB + 1000 Mins Family Drive', validity: '30 Days', price: 799, oldPrice: 999, code: 'RB-DRIVE-799' },
+        { id: 'rb-2', category: 'internet', title: '30 GB Heavy Internet', validity: '30 Days', price: 449, oldPrice: 550, code: 'RB-30GB-30D' },
+        { id: 'rb-3', category: 'minute', title: '350 Minutes Pack', validity: '30 Days', price: 217, oldPrice: 250, code: 'RB-350M-30D' },
+        { id: 'rb-4', category: 'internet', title: '12 GB Weekly Pack', validity: '7 Days', price: 159, oldPrice: 189, code: 'RB-12GB-7D' }
+      ],
+      bl: [
+        { id: 'bl-1', category: 'combo', title: '35 GB + 700 Mins Super Drive', validity: '30 Days', price: 598, oldPrice: 750, code: 'BL-DRIVE-598' },
+        { id: 'bl-2', category: 'internet', title: '20 GB Dhamaka Pack', validity: '30 Days', price: 349, oldPrice: 429, code: 'BL-20GB-30D' },
+        { id: 'bl-3', category: 'minute', title: '400 Minutes Pack', validity: '30 Days', price: 247, oldPrice: 280, code: 'BL-400M-30D' }
+      ],
+      teletalk: [
+        { id: 'tt-1', category: 'internet', title: '30 GB Unlimited Validity', validity: 'Unlimited', price: 309, oldPrice: 399, code: 'TT-30GB-UNL' },
+        { id: 'tt-2', category: 'minute', title: '500 Minutes Green Pack', validity: '30 Days', price: 220, oldPrice: 260, code: 'TT-500M-30D' },
+        { id: 'tt-3', category: 'combo', title: '20 GB + 300 Mins Teletalk Drive', validity: '30 Days', price: 388, oldPrice: 480, code: 'TT-DRIVE-388' }
+      ],
+      skitto: [
+        { id: 'sk-1', category: 'internet', title: '25 GB Promo Data', validity: '30 Days', price: 299, oldPrice: 380, code: 'SK-25GB-30D' },
+        { id: 'sk-2', category: 'combo', title: '15 GB + 200 Mins Chill Pack', validity: '15 Days', price: 229, oldPrice: 299, code: 'SK-15GB-200M' }
+      ]
+    };
+
+    // Initialization
+    window.onload = function() {
+      selectOperator('gp');
+      renderTransactionsTable();
+      updateJsonPreview();
+    };
+
+    // Select Operator
+    function selectOperator(opKey) {
+      state.selectedOperator = opKey;
+      state.selectedOffer = null;
+      document.getElementById('selected-offer-code').value = 'FLEXI';
+      document.getElementById('selected-offer-tag').classList.add('hidden');
+
+      // Update Operator UI Cards
+      Object.keys(operators).forEach(key => {
+        const btn = document.getElementById(`op-${key}`);
+        if (key === opKey) {
+          btn.className = `operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 ${operators[key].border} bg-slate-800 shadow-md shadow-blue-500/10 scale-105 transition-all`;
+        } else {
+          btn.className = `operator-btn flex flex-col items-center p-2.5 rounded-xl border-2 border-slate-800 bg-slate-800/40 hover:bg-slate-800 transition-all opacity-70 hover:opacity-100`;
+        }
+      });
+
+      // Update Badge
+      const titleBadge = document.getElementById('active-operator-title-badge');
+      titleBadge.innerText = operators[opKey].code;
+      titleBadge.className = `px-2 py-0.5 rounded text-xs font-mono font-bold ${operators[opKey].bg} ${operators[opKey].color}`;
+
+      renderOffersList();
+      updateJsonPreview();
+    }
+
+    // Auto Detect Operator from Mobile Number Prefix
+    function handleNumberInput(val) {
+      const clean = val.replace(/\D/g, '');
+      document.getElementById('number-valid-status').innerText = `${clean.length}/11 Digits`;
+
+      if (clean.length >= 3) {
+        const prefix = clean.substring(0, 3);
+        let foundOp = null;
+
+        Object.keys(operators).forEach(key => {
+          if (operators[key].prefixes.includes(prefix)) {
+            foundOp = key;
+          }
+        });
+
+        if (foundOp && foundOp !== state.selectedOperator) {
+          selectOperator(foundOp);
+          document.getElementById('auto-detected-badge').innerText = `Auto-detected: ${operators[foundOp].name}`;
+          document.getElementById('auto-detected-badge').className = "text-[11px] text-emerald-400 font-semibold";
+        }
+      }
+      updateJsonPreview();
+    }
+
+    // Set Connection Type (Prepaid/Postpaid)
+    function setConnectionType(typeVal) {
+      state.connectionType = typeVal;
+      const btnPre = document.getElementById('type-prepaid');
+      const btnPost = document.getElementById('type-postpaid');
+
+      if (typeVal === '1') {
+        btnPre.className = "py-2 text-xs font-semibold rounded-lg transition-all bg-blue-600 text-white shadow-sm";
+        btnPost.className = "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+      } else {
+        btnPost.className = "py-2 text-xs font-semibold rounded-lg transition-all bg-blue-600 text-white shadow-sm";
+        btnPre.className = "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+      }
+      updateJsonPreview();
+    }
+
+    // Quick Amount Selector
+    function setQuickAmount(amt) {
+      document.getElementById('amount-input').value = amt;
+      state.selectedOffer = null;
+      document.getElementById('selected-offer-code').value = 'FLEXI';
+      document.getElementById('selected-offer-tag').classList.add('hidden');
+      updateJsonPreview();
+    }
+
+    function updateSelectedOfferText() {
+      if (!state.selectedOffer) {
+        document.getElementById('selected-offer-tag').classList.add('hidden');
+      }
+      updateJsonPreview();
+    }
+
+    // Filter Offers Category
+    function filterOffersCategory(cat) {
+      state.selectedOfferCategory = cat;
+      const cats = ['all', 'internet', 'minute', 'combo'];
+      cats.forEach(c => {
+        const btn = document.getElementById(`cat-${c}`);
+        if (c === cat) {
+          btn.className = "cat-btn px-2.5 py-1 rounded-lg bg-blue-600 text-white font-semibold";
+        } else {
+          btn.className = "cat-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200 font-normal";
+        }
+      });
+      renderOffersList();
+    }
+
+    // Render Offers List
+    function renderOffersList() {
+      const container = document.getElementById('offers-container');
+      const search = document.getElementById('offer-search-input').value.toLowerCase();
+      const list = offersDatabase[state.selectedOperator] || [];
+
+      const filtered = list.filter(item => {
+        const matchesCategory = state.selectedOfferCategory === 'all' || item.category === state.selectedOfferCategory;
+        const matchesSearch = item.title.toLowerCase().includes(search) || item.validity.toLowerCase().includes(search);
+        return matchesCategory && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-8 text-center text-slate-500 text-xs">
+            <i class="fa-solid fa-box-open text-2xl mb-2 block"></i>
+            No active drive offers found for this filter.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => `
+        <div onclick="applyOfferToRecharge('${item.id}')" class="bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800 hover:border-blue-500/50 rounded-xl p-3 cursor-pointer transition-all flex flex-col justify-between space-y-2 group">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${item.category === 'combo' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400'} uppercase tracking-wider">
+                ${item.category}
+              </span>
+              <h4 class="text-xs font-bold text-slate-200 mt-1 group-hover:text-blue-400 transition-colors">${item.title}</h4>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold text-emerald-400 font-mono">৳${item.price}</span>
+              <span class="block text-[10px] text-slate-500 line-through font-mono">৳${item.oldPrice}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-800/60 pt-2 text-[11px] text-slate-400">
+            <span class="flex items-center gap-1"><i class="fa-regular fa-clock text-[10px]"></i> ${item.validity}</span>
+            <span class="text-blue-400 font-semibold group-hover:translate-x-0.5 transition-transform">Recharge <i class="fa-solid fa-arrow-right text-[9px]"></i></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Apply Offer to Form
+    function applyOfferToRecharge(offerId) {
+      const list = offersDatabase[state.selectedOperator] || [];
+      const offer = list.find(o => o.id === offerId);
+      if (!offer) return;
+
+      state.selectedOffer = offer;
+      document.getElementById('amount-input').value = offer.price;
+      document.getElementById('selected-offer-code').value = offer.code;
+
+      const tag = document.getElementById('selected-offer-tag');
+      tag.innerText = `Pack: ${offer.title}`;
+      tag.classList.remove('hidden');
+
+      showToast(`Selected Offer: ${offer.title} (৳${offer.price})`, 'info');
+      updateJsonPreview();
+    }
+
+    // Live JSON Request Preview Update
+    function updateJsonPreview() {
+      const phone = document.getElementById('mobile-number').value || '017XXXXXXXX';
+      const amount = parseFloat(document.getElementById('amount-input').value) || 0;
+      const offerCode = document.getElementById('selected-offer-code').value;
+
+      const payload = {
+        gateway_endpoint: state.apiSettings.url,
+        request_headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${state.apiSettings.key}`
+        },
+        request_body: {
+          service: "bd_mobile_recharge",
+          username: state.apiSettings.user,
+          number: phone,
+          operator_code: operators[state.selectedOperator].apiCode,
+          account_type: state.connectionType === '1' ? 'PREPAID' : 'POSTPAID',
+          amount: amount,
+          offer_code: offerCode,
+          mode: state.apiMode,
+          client_trx_id: `REQ-${Date.now().toString().slice(-6)}`
+        }
+      };
+
+      document.getElementById('json-preview-code').innerText = JSON.stringify(payload, null, 2);
+    }
+
+    // Handle Recharge Submission
+    async function handleRechargeSubmit(e) {
+      e.preventDefault();
+
+      const phone = document.getElementById('mobile-number').value.replace(/\D/g, '');
+      const amount = parseFloat(document.getElementById('amount-input').value);
+
+      if (phone.length !== 11) {
+        showToast('Please enter a valid 11-digit mobile number!', 'error');
+        return;
+      }
+
+      if (isNaN(amount) || amount < 10) {
+        showToast('Minimum recharge amount is BDT 10', 'error');
+        return;
+      }
+
+      if (state.balance < amount) {
+        showToast('Insufficient API Gateway balance!', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submit-recharge-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-xs"></i> <span>PROCESSING RECHARGE...</span>`;
+
+      const trxId = `TRX-${Math.floor(100000 + Math.random() * 900000)}`;
+      const opObj = operators[state.selectedOperator];
+      const offerName = state.selectedOffer ? state.selectedOffer.title : 'Flexiload Custom';
+
+      appendTerminalLog(`[POST] Initiating ${opObj.name} recharge for +88${phone} (${amount} BDT)...`);
+
+      // Simulate API Network Latency
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      // Balance Deduction
+      state.balance -= amount;
+      document.getElementById('app-balance').innerText = `BDT ${state.balance.toFixed(2)}`;
+
+      appendTerminalLog(`[200 OK] Response Received. Ref: ${trxId}`);
+      appendTerminalLog(`[SMS] MOCK: "Flexiload of Tk ${amount} to ${phone} successful. Fee 0. Balance: Tk ${state.balance.toFixed(2)}."`);
+
+      const newTrx = {
+        id: trxId,
+        number: phone,
+        operator: state.selectedOperator,
+        type: state.connectionType === '1' ? 'Prepaid' : 'Postpaid',
+        amount: amount,
+        offer: offerName,
+        status: 'SUCCESS',
+        time: new Date().toISOString().replace('T', ' ').slice(0, 16)
+      };
+
+      state.transactions.unshift(newTrx);
+      renderTransactionsTable();
+
+      showToast(`Successfully recharged ৳${amount} to ${phone}`, 'success');
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane text-xs"></i> <span>INSTANT RECHARGE NOW</span>`;
+
+      // Open Digital Receipt Modal
+      openReceiptModal(newTrx);
+    }
+
+    // Modal Receipt
+    function openReceiptModal(trx) {
+      document.getElementById('rcpt-trx').innerText = trx.id;
+      document.getElementById('rcpt-number').innerText = `+88 ${trx.number}`;
+      document.getElementById('rcpt-operator').innerText = operators[trx.operator].name;
+      document.getElementById('rcpt-type').innerText = trx.type;
+      document.getElementById('rcpt-offer').innerText = trx.offer;
+      document.getElementById('rcpt-amount').innerText = `BDT ৳${trx.amount.toFixed(2)}`;
+      document.getElementById('rcpt-time').innerText = trx.time;
+      document.getElementById('rcpt-gateway').innerText = state.apiSettings.provider.toUpperCase();
+
+      document.getElementById('receipt-modal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    // Render Recent Transactions Table
+    function renderTransactionsTable() {
+      const tbody = document.getElementById('transaction-history-body');
+      if (state.transactions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-slate-500 font-sans">No recent transactions recorded.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.transactions.map(trx => {
+        const op = operators[trx.operator];
+        return `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="py-3 px-3 font-bold text-blue-400">${trx.id}</td>
+            <td class="py-3 px-3 text-slate-200">+88${trx.number}</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${op.bg} ${op.color}">
+                ${op.code}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-slate-400">${trx.type}</td>
+            <td class="py-3 px-3 font-bold text-emerald-400">৳${trx.amount}</td>
+            <td class="py-3 px-3 text-slate-300 font-sans text-[11px] max-w-[180px] truncate">${trx.offer}</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                ${trx.status}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-slate-500 text-[10px]">${trx.time}</td>
+            <td class="py-3 px-3 text-right">
+              <button onclick='openReceiptModal(${JSON.stringify(trx)})' class="text-xs text-slate-400 hover:text-blue-400 transition-colors">
+                <i class="fa-solid fa-receipt"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Terminal Logging Helper
+    function appendTerminalLog(msg) {
+      const consoleEl = document.getElementById('terminal-console');
+      const div = document.createElement('div');
+      div.className = "text-slate-300";
+      div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function clearConsoleLogs() {
+      document.getElementById('terminal-console').innerHTML = `<div class="text-slate-500">[SYSTEM] Logs cleared. Console listening...</div>`;
+    }
+
+    // Top up simulated balance
+    function topUpSimulatedBalance() {
+      state.balance += 2000;
+      document.getElementById('app-balance').innerText = `BDT ${state.balance.toFixed(2)}`;
+      showToast('Added ৳2,000.00 test balance to API Gateway!', 'success');
+      appendTerminalLog('[BALANCE] Simulated Merchant Deposit +2000.00 BDT');
+    }
+
+    // Mode Toggle
+    function setApiMode(mode) {
+      state.apiMode = mode;
+      const sandBtn = document.getElementById('mode-sandbox-btn');
+      const liveBtn = document.getElementById('mode-live-btn');
+
+      if (mode === 'sandbox') {
+        sandBtn.className = "px-2.5 py-1 text-xs rounded-lg font-medium transition-all bg-blue-600 text-white shadow-sm";
+        liveBtn.className = "px-2.5 py-1 text-xs rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-all";
+        document.getElementById('server-status-text').innerText = "Server Online (Sandbox)";
+      } else {
+        liveBtn.className = "px-2.5 py-1 text-xs rounded-lg font-medium transition-all bg-emerald-600 text-white shadow-sm";
+        sandBtn.className = "px-2.5 py-1 text-xs rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-all";
+        document.getElementById('server-status-text').innerText = "Live Gateway Connected";
+      }
+      updateJsonPreview();
+      showToast(`Switched API mode to ${mode.toUpperCase()}`, 'info');
+    }
+
+    // Settings Modal Handlers
+    function toggleApiSettingsModal(show) {
+      const modal = document.getElementById('api-settings-modal');
+      if (show) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function saveApiSettings() {
+      state.apiSettings.provider = document.getElementById('setting-provider-type').value;
+      state.apiSettings.url = document.getElementById('setting-api-url').value;
+      state.apiSettings.user = document.getElementById('setting-api-user').value;
+      state.apiSettings.key = document.getElementById('setting-api-key').value;
+      state.apiSettings.webhook = document.getElementById('setting-webhook-url').value;
+
+      toggleApiSettingsModal(false);
+      updateJsonPreview();
+      showToast('API Gateway Settings Saved!', 'success');
+      appendTerminalLog(`[CONFIG] Provider settings updated to ${state.apiSettings.provider.toUpperCase()}`);
+    }
+
+    function copyApiPayload() {
+      const code = document.getElementById('json-preview-code').innerText;
+      const textarea = document.createElement('textarea');
+      textarea.value = code;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast('JSON Payload copied to clipboard!', 'info');
+    }
+
+    function exportTransactionsCSV() {
+      if (state.transactions.length === 0) {
+        showToast('No transaction data to export!', 'error');
+        return;
+      }
+
+      let csv = 'TRX ID,Mobile Number,Operator,Type,Amount (BDT),Offer Pack,Status,Time\n';
+      state.transactions.forEach(t => {
+        csv += `${t.id},0${t.number},${t.operator},${t.type},${t.amount},"${t.offer}",${t.status},${t.time}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `recharge_report_${Date.now()}.csv`);
+      a.click();
+      showToast('CSV Report Downloaded!', 'success');
+    }
+
+    function clearTransactionHistory() {
+      state.transactions = [];
+      renderTransactionsTable();
+      showToast('Transaction history cleared!', 'info');
+    }
+
+    // Toast Notification System
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const colors = {
+        success: 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300',
+        error: 'bg-red-950/90 border-red-500/50 text-red-300',
+        info: 'bg-blue-950/90 border-blue-500/50 text-blue-300'
+      };
+
+      const icons = {
+        success: 'fa-circle-check text-emerald-400',
+        error: 'fa-circle-exclamation text-red-400',
+        info: 'fa-circle-info text-blue-400'
+      };
+
+      toast.className = `p-3.5 rounded-xl border backdrop-blur-md shadow-2xl flex items-center space-x-3 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 text-xs font-semibold ${colors[type]}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type]} text-sm"></i>
+        <span class="flex-1">${message}</span>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
